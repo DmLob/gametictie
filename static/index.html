@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Крестики-нолики</title>
+    <title>Мини-игры</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -73,6 +73,24 @@
             color: var(--tg-theme-text-color, #000000);
         }
 
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .game-type-menu {
+            display: none;
+        }
+
+        .game-type-menu.active {
+            display: block;
+        }
+
         .game-screen {
             display: none;
         }
@@ -122,7 +140,8 @@
             color: var(--tg-theme-button-text-color, #ffffff);
         }
 
-        .board {
+        /* Крестики-нолики */
+        .tictactoe-board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
@@ -132,7 +151,7 @@
             margin-right: auto;
         }
 
-        .cell {
+        .tictactoe-cell {
             aspect-ratio: 1;
             border: 2px solid var(--tg-theme-hint-color, #cccccc);
             border-radius: 12px;
@@ -146,22 +165,128 @@
             background: var(--tg-theme-bg-color, #ffffff);
         }
 
-        .cell:hover {
+        .tictactoe-cell:hover {
             background: var(--tg-theme-secondary-bg-color, #f0f0f0);
         }
 
-        .cell.x {
+        .tictactoe-cell.x {
             color: #e74c3c;
         }
 
-        .cell.o {
+        .tictactoe-cell.o {
             color: #3498db;
         }
 
-        .cell:empty:hover::after {
+        .tictactoe-cell:empty:hover::after {
             content: attr(data-preview);
             opacity: 0.3;
             color: var(--tg-theme-text-color, #000000);
+        }
+
+        /* Морской бой */
+        .battleship-container {
+            display: none;
+        }
+
+        .battleship-container.active {
+            display: block;
+        }
+
+        .battleship-setup {
+            display: none;
+            text-align: center;
+        }
+
+        .battleship-setup.active {
+            display: block;
+        }
+
+        .battleship-playing {
+            display: none;
+        }
+
+        .battleship-playing.active {
+            display: block;
+        }
+
+        .battleship-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            margin: 20px 0;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 2px solid var(--tg-theme-hint-color, #cccccc);
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        .battleship-cell {
+            aspect-ratio: 1;
+            border: 1px solid var(--tg-theme-hint-color, #cccccc);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--tg-theme-bg-color, #ffffff);
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .battleship-cell:hover {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+
+        .battleship-cell.ship {
+            background: #28a745;
+        }
+
+        .battleship-cell.hit {
+            background: #dc3545;
+            color: white;
+        }
+
+        .battleship-cell.miss {
+            background: #6c757d;
+            color: white;
+        }
+
+        .battleship-cell.selected {
+            background: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .ship-placement {
+            margin: 20px 0;
+        }
+
+        .ship-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .ship-info {
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .boards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .board-section {
+            text-align: center;
+        }
+
+        .board-title {
+            font-weight: bold;
+            margin-bottom: 10px;
         }
 
         .join-form {
@@ -248,20 +373,51 @@
             background: #fff3cd;
             color: #856404;
         }
+
+        .restart-section {
+            margin-top: 20px;
+            text-align: center;
+            padding: 15px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+        }
+
+        .restart-votes {
+            margin: 10px 0;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        @media (max-width: 480px) {
+            .boards-container {
+                flex-direction: column;
+            }
+            
+            .battleship-board {
+                max-width: 250px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Заголовок -->
         <div class="header">
-            <div class="title">🎮 Крестики-нолики</div>
+            <div class="title">🎮 Мини-игры</div>
             <div class="subtitle">Играй с друзьями в Telegram</div>
         </div>
 
         <!-- Главное меню -->
         <div class="menu" id="menu">
-            <button class="btn" onclick="createGame()">🎯 Создать игру</button>
+            <button class="btn" onclick="showGameTypeMenu()">🎯 Создать игру</button>
             <button class="btn btn-secondary" onclick="showJoinForm()">🔗 Присоединиться к игре</button>
+        </div>
+
+        <!-- Меню выбора типа игры -->
+        <div class="game-type-menu" id="gameTypeMenu">
+            <button class="btn" onclick="createGame('tictactoe')">❌ Крестики-нолики</button>
+            <button class="btn" onclick="createGame('battleship')">🚢 Морской бой</button>
+            <button class="btn btn-secondary" onclick="showMenu()">Назад</button>
         </div>
 
         <!-- Форма присоединения -->
@@ -280,28 +436,65 @@
 
             <div class="players" id="players">
                 <div class="player">
-                    <div class="symbol">❌</div>
+                    <div class="symbol">🎮</div>
                     <div class="name">Игрок 1</div>
                 </div>
                 <div class="player">
-                    <div class="symbol">⭕</div>
+                    <div class="symbol">🎮</div>
                     <div class="name">Ожидание...</div>
                 </div>
             </div>
 
-            <div class="board" id="board">
-                <div class="cell" onclick="makeMove(0)"></div>
-                <div class="cell" onclick="makeMove(1)"></div>
-                <div class="cell" onclick="makeMove(2)"></div>
-                <div class="cell" onclick="makeMove(3)"></div>
-                <div class="cell" onclick="makeMove(4)"></div>
-                <div class="cell" onclick="makeMove(5)"></div>
-                <div class="cell" onclick="makeMove(6)"></div>
-                <div class="cell" onclick="makeMove(7)"></div>
-                <div class="cell" onclick="makeMove(8)"></div>
+            <!-- Крестики-нолики -->
+            <div class="tictactoe-container" id="tictactoeContainer">
+                <div class="tictactoe-board" id="tictactoeBoard">
+                    <div class="tictactoe-cell" onclick="makeMove(0)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(1)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(2)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(3)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(4)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(5)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(6)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(7)"></div>
+                    <div class="tictactoe-cell" onclick="makeMove(8)"></div>
+                </div>
+            </div>
+
+            <!-- Морской бой -->
+            <div class="battleship-container" id="battleshipContainer">
+                <!-- Фаза расстановки кораблей -->
+                <div class="battleship-setup" id="battleshipSetup">
+                    <div class="ship-info" id="shipInfo">Расставьте корабли</div>
+                    <div class="battleship-board" id="setupBoard"></div>
+                    <div class="ship-controls">
+                        <button class="btn btn-secondary" onclick="rotateShip()">🔄 Повернуть</button>
+                        <button class="btn btn-secondary" onclick="clearBoard()">🗑️ Очистить</button>
+                    </div>
+                    <button class="btn btn-success" onclick="confirmShipPlacement()" id="confirmBtn" disabled>✅ Готов к игре</button>
+                </div>
+
+                <!-- Фаза игры -->
+                <div class="battleship-playing" id="battleshipPlaying">
+                    <div class="boards-container">
+                        <div class="board-section">
+                            <div class="board-title">Ваша доска</div>
+                            <div class="battleship-board" id="ownBoard"></div>
+                        </div>
+                        <div class="board-section">
+                            <div class="board-title">Доска противника</div>
+                            <div class="battleship-board" id="enemyBoard"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="winnerMessage"></div>
+
+            <!-- Секция перезапуска игры -->
+            <div class="restart-section" id="restartSection" style="display: none;">
+                <button class="btn btn-success" onclick="voteRestart()">🔄 Играть еще раз</button>
+                <div class="restart-votes" id="restartVotes"></div>
+            </div>
 
             <button class="btn btn-secondary" onclick="showMenu()">🏠 Главное меню</button>
             
@@ -323,8 +516,6 @@
         tg.expand();
 
         // Настройки
-        // const API_BASE = `http://${window.location.host}/api`;
-        // const WS_URL = `ws://${window.location.host}/api/ws`;\
         const API_BASE = `${window.location.origin}/api`;
         const WS_URL = window.location.protocol === 'https:' ? 
               `wss://${window.location.host}/api/ws` : 
@@ -335,20 +526,25 @@
         let playerId = null;
         let playerName = null;
         let websocket = null;
+        let playerIndex = -1;
+
+        // Переменные для морского боя
+        let currentShipLength = 4;
+        let currentShipDirection = 'horizontal';
+        let shipCounts = {4: 1, 3: 2, 2: 3, 1: 4};
+        let placedShips = [];
+        let selectedCells = [];
 
         // Инициализация
         function init() {
-            // Получаем данные пользователя из Telegram
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 playerId = tg.initDataUnsafe.user.id.toString();
                 playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
             } else {
-                // Для тестирования без Telegram
                 playerId = 'test_' + Math.random().toString(36).substr(2, 9);
                 playerName = 'Тестовый игрок';
             }
 
-            // Проверяем параметры запуска (возможно, пользователь пришел по ссылке)
             const urlParams = new URLSearchParams(window.location.search);
             const gameId = urlParams.get('gameId');
             if (gameId) {
@@ -400,7 +596,7 @@
         }
 
         // Создание игры
-        async function createGame() {
+        async function createGame(gameType) {
             try {
                 const response = await fetch(`${API_BASE}/games`, {
                     method: 'POST',
@@ -409,7 +605,8 @@
                     },
                     body: JSON.stringify({
                         playerId: playerId,
-                        playerName: playerName
+                        playerName: playerName,
+                        gameType: gameType
                     })
                 });
 
@@ -465,9 +662,26 @@
             }
         }
 
-        // Сделать ход
+        // Голосование за перезапуск
+        function voteRestart() {
+            if (!currentGame || !websocket || websocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            websocket.send(JSON.stringify({
+                type: 'restartVote',
+                data: {
+                    gameId: currentGame.id,
+                    playerId: playerId
+                }
+            }));
+        }
+
+        // === КРЕСТИКИ-НОЛИКИ ===
+
+        // Сделать ход в крестики-нолики
         function makeMove(position) {
-            if (!currentGame || currentGame.status !== 'playing') {
+            if (!currentGame || currentGame.type !== 'tictactoe' || currentGame.status !== 'playing') {
                 return;
             }
 
@@ -493,6 +707,316 @@
             }
         }
 
+        // === МОРСКОЙ БОЙ ===
+
+        // Инициализация морского боя
+        function initBattleship() {
+            currentShipLength = 4;
+            currentShipDirection = 'horizontal';
+            placedShips = [];
+            selectedCells = [];
+            updateShipCounts();
+            createSetupBoard();
+            updateShipInfo();
+        }
+
+        // Создание доски для расстановки
+        function createSetupBoard() {
+            const board = document.getElementById('setupBoard');
+            board.innerHTML = '';
+            
+            for (let y = 0; y < 10; y++) {
+                for (let x = 0; x < 10; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'battleship-cell';
+                    cell.onclick = () => selectCell(x, y);
+                    cell.onmouseover = () => previewShip(x, y);
+                    cell.onmouseout = () => clearPreview();
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        // Выбор клетки для размещения корабля
+        function selectCell(x, y) {
+            if (!canPlaceShip(x, y, currentShipLength, currentShipDirection)) {
+                showMessage('Невозможно разместить корабль здесь', 'error');
+                return;
+            }
+
+            const ship = {
+                x: x,
+                y: y,
+                length: currentShipLength,
+                direction: currentShipDirection,
+                hits: 0
+            };
+
+            placedShips.push(ship);
+            shipCounts[currentShipLength]--;
+            
+            updateBoard();
+            updateShipInfo();
+            
+            // Переходим к следующему кораблю
+            selectNextShip();
+        }
+
+        // Проверка возможности размещения корабля
+        function canPlaceShip(x, y, length, direction) {
+            // Проверяем границы
+            if (direction === 'horizontal') {
+                if (x + length > 10) return false;
+            } else {
+                if (y + length > 10) return false;
+            }
+
+            // Проверяем пересечения и соседние клетки
+            for (let i = 0; i < length; i++) {
+                const cx = direction === 'horizontal' ? x + i : x;
+                const cy = direction === 'vertical' ? y + i : y;
+
+                // Проверяем область 3x3 вокруг каждой клетки корабля
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const nx = cx + dx;
+                        const ny = cy + dy;
+                        
+                        if (nx >= 0 && nx < 10 && ny >= 0 && ny < 10) {
+                            if (isOccupied(nx, ny)) return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        // Проверка занятости клетки
+        function isOccupied(x, y) {
+            for (const ship of placedShips) {
+                for (let i = 0; i < ship.length; i++) {
+                    const sx = ship.direction === 'horizontal' ? ship.x + i : ship.x;
+                    const sy = ship.direction === 'vertical' ? ship.y + i : ship.y;
+                    if (sx === x && sy === y) return true;
+                }
+            }
+            return false;
+        }
+
+        // Предварительный просмотр размещения корабля
+        function previewShip(x, y) {
+            clearPreview();
+            
+            if (!canPlaceShip(x, y, currentShipLength, currentShipDirection)) {
+                return;
+            }
+
+            for (let i = 0; i < currentShipLength; i++) {
+                const cx = currentShipDirection === 'horizontal' ? x + i : x;
+                const cy = currentShipDirection === 'vertical' ? y + i : y;
+                const cell = getCellElement('setupBoard', cx, cy);
+                if (cell) cell.classList.add('selected');
+            }
+        }
+
+        // Очистка предварительного просмотра
+        function clearPreview() {
+            const cells = document.querySelectorAll('#setupBoard .battleship-cell');
+            cells.forEach(cell => cell.classList.remove('selected'));
+        }
+
+        // Получение элемента клетки
+        function getCellElement(boardId, x, y) {
+            const board = document.getElementById(boardId);
+            return board.children[y * 10 + x];
+        }
+
+        // Обновление доски
+        function updateBoard() {
+            const cells = document.querySelectorAll('#setupBoard .battleship-cell');
+            cells.forEach(cell => {
+                cell.className = 'battleship-cell';
+            });
+
+            for (const ship of placedShips) {
+                for (let i = 0; i < ship.length; i++) {
+                    const x = ship.direction === 'horizontal' ? ship.x + i : ship.x;
+                    const y = ship.direction === 'vertical' ? ship.y + i : ship.y;
+                    const cell = getCellElement('setupBoard', x, y);
+                    if (cell) cell.classList.add('ship');
+                }
+            }
+        }
+
+        // Выбор следующего корабля для размещения
+        function selectNextShip() {
+            for (let length = 4; length >= 1; length--) {
+                if (shipCounts[length] > 0) {
+                    currentShipLength = length;
+                    updateShipInfo();
+                    return;
+                }
+            }
+            
+            // Все корабли размещены
+            document.getElementById('confirmBtn').disabled = false;
+        }
+
+        // Обновление информации о корабле
+        function updateShipInfo() {
+            const remaining = Object.values(shipCounts).reduce((a, b) => a + b, 0);
+            if (remaining > 0) {
+                document.getElementById('shipInfo').textContent = 
+                    `Размещаем корабль длиной ${currentShipLength} (осталось: ${shipCounts[currentShipLength]})`;
+            } else {
+                document.getElementById('shipInfo').textContent = 'Все корабли размещены! Нажмите "Готов к игре"';
+            }
+        }
+
+        // Обновление счетчика кораблей
+        function updateShipCounts() {
+            shipCounts = {4: 1, 3: 2, 2: 3, 1: 4};
+        }
+
+        // Поворот корабля
+        function rotateShip() {
+            currentShipDirection = currentShipDirection === 'horizontal' ? 'vertical' : 'horizontal';
+        }
+
+        // Очистка доски
+        function clearBoard() {
+            placedShips = [];
+            updateShipCounts();
+            currentShipLength = 4;
+            updateBoard();
+            updateShipInfo();
+            document.getElementById('confirmBtn').disabled = true;
+        }
+
+        // Подтверждение размещения кораблей
+        function confirmShipPlacement() {
+            if (placedShips.length !== 10) {
+                showMessage('Разместите все корабли', 'error');
+                return;
+            }
+
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'placeShips',
+                    data: {
+                        gameId: currentGame.id,
+                        playerId: playerId,
+                        ships: placedShips
+                    }
+                }));
+            }
+        }
+
+        // Атака в морском бое
+        function attackCell(x, y) {
+            if (!currentGame || currentGame.type !== 'battleship' || currentGame.status !== 'playing') {
+                return;
+            }
+
+            const currentPlayer = currentGame.players[currentGame.turn];
+            if (currentPlayer.id !== playerId) {
+                showMessage('Сейчас не ваш ход!', 'error');
+                return;
+            }
+
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'attack',
+                    data: {
+                        gameId: currentGame.id,
+                        x: x,
+                        y: y,
+                        playerId: playerId
+                    }
+                }));
+            }
+        }
+
+        // Создание доски для игры в морской бой
+        function createBattleshipBoards() {
+            createBattleshipBoard('ownBoard', false);
+            createBattleshipBoard('enemyBoard', true);
+        }
+
+        function createBattleshipBoard(boardId, isEnemy) {
+            const board = document.getElementById(boardId);
+            board.innerHTML = '';
+            
+            for (let y = 0; y < 10; y++) {
+                for (let x = 0; x < 10; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'battleship-cell';
+                    if (isEnemy) {
+                        cell.onclick = () => attackCell(x, y);
+                    }
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        // Обновление досок морского боя
+        function updateBattleshipBoards() {
+            if (!currentGame || !currentGame.boards) return;
+
+            // Найдем индекс игрока
+            playerIndex = currentGame.players.findIndex(p => p.id === playerId);
+            const enemyIndex = 1 - playerIndex;
+
+            if (playerIndex === -1) return;
+
+            // Обновляем собственную доску
+            const ownBoard = currentGame.boards[playerIndex];
+            if (ownBoard) {
+                for (let y = 0; y < 10; y++) {
+                    for (let x = 0; x < 10; x++) {
+                        const cell = getCellElement('ownBoard', x, y);
+                        if (cell) {
+                            cell.className = 'battleship-cell';
+                            const cellValue = ownBoard.grid[y][x];
+                            if (cellValue === 'ship') {
+                                cell.classList.add('ship');
+                            } else if (cellValue === 'hit') {
+                                cell.classList.add('hit');
+                                cell.textContent = '💥';
+                            } else if (cellValue === 'miss') {
+                                cell.classList.add('miss');
+                                cell.textContent = '💧';
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Обновляем доску противника (только видимые попадания/промахи)
+            const enemyBoard = currentGame.boards[enemyIndex];
+            if (enemyBoard) {
+                for (let y = 0; y < 10; y++) {
+                    for (let x = 0; x < 10; x++) {
+                        const cell = getCellElement('enemyBoard', x, y);
+                        if (cell) {
+                            cell.className = 'battleship-cell';
+                            const cellValue = enemyBoard.grid[y][x];
+                            if (cellValue === 'hit') {
+                                cell.classList.add('hit');
+                                cell.textContent = '💥';
+                            } else if (cellValue === 'miss') {
+                                cell.classList.add('miss');
+                                cell.textContent = '💧';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // === ОБЩИЕ ФУНКЦИИ ===
+
         // Обновление экрана игры
         function updateGameScreen() {
             if (!currentGame) return;
@@ -500,11 +1024,17 @@
             // ID игры
             document.getElementById('gameId').textContent = currentGame.id;
 
+            // Определяем индекс игрока
+            playerIndex = currentGame.players.findIndex(p => p.id === playerId);
+
             // Статус игры
             let statusText = '';
             switch (currentGame.status) {
                 case 'waiting':
                     statusText = 'Ожидание второго игрока...';
+                    break;
+                case 'setup':
+                    statusText = 'Расставьте корабли';
                     break;
                 case 'playing':
                     const currentPlayer = currentGame.players[currentGame.turn];
@@ -517,10 +1047,17 @@
                 case 'finished':
                     if (currentGame.winner === 'draw') {
                         statusText = 'Ничья!';
-                    } else {
+                    } else if (currentGame.type === 'tictactoe') {
                         const winner = currentGame.players.find(p => p.symbol === currentGame.winner);
                         statusText = `Победил ${winner ? winner.name : currentGame.winner}!`;
+                    } else if (currentGame.type === 'battleship') {
+                        const winnerIndex = currentGame.winner === 'player1' ? 0 : 1;
+                        const winner = currentGame.players[winnerIndex];
+                        statusText = `Победил ${winner ? winner.name : 'игрок'}!`;
                     }
+                    break;
+                case 'restart_requested':
+                    statusText = 'Ожидание голосов за повтор...';
                     break;
             }
             document.getElementById('gameStatus').textContent = statusText;
@@ -532,8 +1069,16 @@
             currentGame.players.forEach((player, index) => {
                 const playerDiv = document.createElement('div');
                 playerDiv.className = `player ${currentGame.turn === index && currentGame.status === 'playing' ? 'active' : ''}`;
+                
+                let symbol = '🎮';
+                if (currentGame.type === 'tictactoe' && player.symbol) {
+                    symbol = player.symbol === 'X' ? '❌' : '⭕';
+                } else if (currentGame.type === 'battleship') {
+                    symbol = '🚢';
+                }
+                
                 playerDiv.innerHTML = `
-                    <div class="symbol">${player.symbol === 'X' ? '❌' : '⭕'}</div>
+                    <div class="symbol">${symbol}</div>
                     <div class="name">${player.name}</div>
                 `;
                 playersDiv.appendChild(playerDiv);
@@ -543,19 +1088,41 @@
             while (playersDiv.children.length < 2) {
                 const playerDiv = document.createElement('div');
                 playerDiv.className = 'player';
+                
+                let symbol = currentGame.type === 'tictactoe' ? '⭕' : '🚢';
+                
                 playerDiv.innerHTML = `
-                    <div class="symbol">⭕</div>
+                    <div class="symbol">${symbol}</div>
                     <div class="name">Ожидание...</div>
                 `;
                 playersDiv.appendChild(playerDiv);
             }
 
-            // Доска
-            const cells = document.querySelectorAll('.cell');
+            // Показываем соответствующую игру
+            if (currentGame.type === 'tictactoe') {
+                document.getElementById('tictactoeContainer').style.display = 'block';
+                document.getElementById('battleshipContainer').style.display = 'none';
+                updateTicTacToeBoard();
+            } else if (currentGame.type === 'battleship') {
+                document.getElementById('tictactoeContainer').style.display = 'none';
+                document.getElementById('battleshipContainer').style.display = 'block';
+                updateBattleshipGame();
+            }
+
+            // Сообщение о победе и кнопка перезапуска
+            updateWinnerMessage();
+            updateRestartSection();
+        }
+
+        // Обновление доски крестиков-ноликов
+        function updateTicTacToeBoard() {
+            if (!currentGame || currentGame.type !== 'tictactoe') return;
+
+            const cells = document.querySelectorAll('.tictactoe-cell');
             cells.forEach((cell, index) => {
                 const value = currentGame.board[index];
                 cell.textContent = value === 'X' ? '❌' : value === 'O' ? '⭕' : '';
-                cell.className = `cell ${value.toLowerCase()}`;
+                cell.className = `tictactoe-cell ${value.toLowerCase()}`;
                 
                 // Предварительный просмотр хода
                 if (!value && currentGame.status === 'playing') {
@@ -565,8 +1132,36 @@
                     }
                 }
             });
+        }
 
-            // Сообщение о победе
+        // Обновление игры морской бой
+        function updateBattleshipGame() {
+            if (!currentGame || currentGame.type !== 'battleship') return;
+
+            const battleshipContainer = document.getElementById('battleshipContainer');
+            battleshipContainer.classList.add('active');
+
+            if (currentGame.status === 'setup') {
+                document.getElementById('battleshipSetup').classList.add('active');
+                document.getElementById('battleshipPlaying').classList.remove('active');
+                
+                // Проверяем, готов ли уже этот игрок
+                if (playerIndex !== -1 && currentGame.boards && currentGame.boards[playerIndex] && currentGame.boards[playerIndex].ready) {
+                    document.getElementById('shipInfo').textContent = 'Ожидание других игроков...';
+                    document.getElementById('confirmBtn').disabled = true;
+                } else if (!placedShips.length) {
+                    initBattleship();
+                }
+            } else if (currentGame.status === 'playing' || currentGame.status === 'finished') {
+                document.getElementById('battleshipSetup').classList.remove('active');
+                document.getElementById('battleshipPlaying').classList.add('active');
+                createBattleshipBoards();
+                updateBattleshipBoards();
+            }
+        }
+
+        // Обновление сообщения о победителе
+        function updateWinnerMessage() {
             const winnerMessageDiv = document.getElementById('winnerMessage');
             if (currentGame.status === 'finished') {
                 let messageClass = '';
@@ -576,8 +1171,17 @@
                     messageClass = 'draw';
                     messageText = '🤝 Ничья!';
                 } else {
-                    const winner = currentGame.players.find(p => p.symbol === currentGame.winner);
-                    if (winner && winner.id === playerId) {
+                    let isWinner = false;
+                    
+                    if (currentGame.type === 'tictactoe') {
+                        const winner = currentGame.players.find(p => p.symbol === currentGame.winner);
+                        isWinner = winner && winner.id === playerId;
+                    } else if (currentGame.type === 'battleship') {
+                        const winnerIndex = currentGame.winner === 'player1' ? 0 : 1;
+                        isWinner = winnerIndex === playerIndex;
+                    }
+                    
+                    if (isWinner) {
                         messageClass = 'win';
                         messageText = '🎉 Вы победили!';
                     } else {
@@ -589,6 +1193,28 @@
                 winnerMessageDiv.innerHTML = `<div class="winner-message ${messageClass}">${messageText}</div>`;
             } else {
                 winnerMessageDiv.innerHTML = '';
+            }
+        }
+
+        // Обновление секции перезапуска
+        function updateRestartSection() {
+            const restartSection = document.getElementById('restartSection');
+            const restartVotes = document.getElementById('restartVotes');
+            
+            if (currentGame.status === 'finished' || currentGame.status === 'restart_requested') {
+                restartSection.style.display = 'block';
+                
+                const totalPlayers = currentGame.players.length;
+                const currentVotes = currentGame.restartVotes ? currentGame.restartVotes.length : 0;
+                const hasVoted = currentGame.restartVotes && currentGame.restartVotes.includes(playerId);
+                
+                if (hasVoted) {
+                    restartVotes.textContent = `Вы проголосовали за повтор (${currentVotes}/${totalPlayers})`;
+                } else {
+                    restartVotes.textContent = `Голосов за повтор: ${currentVotes}/${totalPlayers}`;
+                }
+            } else {
+                restartSection.style.display = 'none';
             }
         }
 
@@ -609,24 +1235,24 @@
             if (!currentGame) return;
             
             const gameUrl = `${window.location.origin}${window.location.pathname}?gameId=${currentGame.id}`;
-            const shareText = `🎮 Давай сыграем в крестики-нолики!\nИD игры: ${currentGame.id}\nСсылка: ${gameUrl}`;
+            const gameTypeName = currentGame.type === 'tictactoe' ? 'крестики-нолики' : 'морской бой';
+            const shareText = `🎮 Давай сыграем в ${gameTypeName}!\nID игры: ${currentGame.id}\nСсылка: ${gameUrl}`;
             
             if (tg.shareToStory) {
                 tg.shareToStory(gameUrl, {
                     text: shareText,
                     widget_link: {
                         url: gameUrl,
-                        name: 'Играть в крестики-нолики'
+                        name: `Играть в ${gameTypeName}`
                     }
                 });
             } else if (navigator.share) {
                 navigator.share({
-                    title: 'Крестики-нолики',
+                    title: 'Мини-игры',
                     text: shareText,
                     url: gameUrl
                 });
             } else {
-                // Копируем в буфер обмена
                 navigator.clipboard.writeText(shareText).then(() => {
                     showMessage('Ссылка скопирована!', 'success');
                 }).catch(() => {
@@ -635,24 +1261,34 @@
             }
         }
 
-        // Навигация между экранами
+        // === НАВИГАЦИЯ ===
+
         function showMenu() {
             document.getElementById('menu').classList.remove('hidden');
+            document.getElementById('gameTypeMenu').classList.remove('active');
             document.getElementById('joinForm').classList.remove('active');
             document.getElementById('gameScreen').classList.remove('active');
             
-            // Закрываем WebSocket соединение
             if (websocket) {
                 websocket.close();
                 websocket = null;
             }
             
             currentGame = null;
+            placedShips = [];
             clearMessages();
+        }
+
+        function showGameTypeMenu() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('gameTypeMenu').classList.add('active');
+            document.getElementById('joinForm').classList.remove('active');
+            document.getElementById('gameScreen').classList.remove('active');
         }
 
         function showJoinForm() {
             document.getElementById('menu').classList.add('hidden');
+            document.getElementById('gameTypeMenu').classList.remove('active');
             document.getElementById('joinForm').classList.add('active');
             document.getElementById('gameScreen').classList.remove('active');
             document.getElementById('gameIdInput').focus();
@@ -660,12 +1296,14 @@
 
         function showGameScreen() {
             document.getElementById('menu').classList.add('hidden');
+            document.getElementById('gameTypeMenu').classList.remove('active');
             document.getElementById('joinForm').classList.remove('active');
             document.getElementById('gameScreen').classList.add('active');
             updateGameScreen();
         }
 
-        // Система сообщений
+        // === СИСТЕМА СООБЩЕНИЙ ===
+
         function showMessage(text, type = 'info') {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
@@ -673,7 +1311,6 @@
             messageDiv.textContent = text;
             messagesDiv.appendChild(messageDiv);
 
-            // Автоматически убираем сообщение через 5 секунд
             setTimeout(() => {
                 if (messageDiv.parentNode) {
                     messageDiv.parentNode.removeChild(messageDiv);
@@ -685,7 +1322,8 @@
             document.getElementById('messages').innerHTML = '';
         }
 
-        // Обработка кнопки "Назад" в Telegram
+        // === TELEGRAM ИНТЕГРАЦИЯ ===
+
         tg.BackButton.onClick(() => {
             if (!document.getElementById('menu').classList.contains('hidden')) {
                 tg.close();
@@ -694,7 +1332,6 @@
             }
         });
 
-        // Показываем кнопку "Назад" когда не в главном меню
         function updateBackButton() {
             if (document.getElementById('menu').classList.contains('hidden')) {
                 tg.BackButton.show();
@@ -703,7 +1340,6 @@
             }
         }
 
-        // Следим за изменениями экранов для кнопки "Назад"
         const observer = new MutationObserver(updateBackButton);
         observer.observe(document.getElementById('menu'), { attributes: true, attributeFilter: ['class'] });
 
