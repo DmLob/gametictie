@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--tg-theme-text-color, #000000);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .menu {
+            display: block;
+        }
+
+        .menu.hidden {
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .btn-secondary {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .game-screen.active {
+            display: block;
+        }
+
+        .game-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+        }
+
+        .game-id {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+
+        .game-status {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .players {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .player {
+            flex: 1;
+            padding: 10px;
+            margin: 0 5px;
+            text-align: center;
+            border-radius: 8px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+
+        .player.active {
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            border: 2px solid var(--tg-theme-hint-color, #cccccc);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--tg-theme-bg-color, #ffffff);
+        }
+
+        .cell:hover {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+
+        .cell.x {
+            color: #e74c3c;
+        }
+
+        .cell.o {
+            color: #3498db;
+        }
+
+        .cell:empty:hover::after {
+            content: attr(data-preview);
+            opacity: 0.3;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .join-form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .join-form.active {
+            display: block;
+        }
+
+        .input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid var(--tg-theme-hint-color, #cccccc);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .share-link {
+            margin-top: 15px;
+            padding: 10px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .winner-message {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .winner-message.win {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .winner-message.lose {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .winner-message.draw {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Заголовок -->
+        <div class="header">
+            <div class="title">🎮 Крестики-нолики</div>
+            <div class="subtitle">Играй с друзьями в Telegram</div>
+        </div>
+
+        <!-- Главное меню -->
+        <div class="menu" id="menu">
+            <button class="btn" onclick="createGame()">🎯 Создать игру</button>
+            <button class="btn btn-secondary" onclick="showJoinForm()">🔗 Присоединиться к игре</button>
+        </div>
+
+        <!-- Форма присоединения -->
+        <div class="join-form" id="joinForm">
+            <input type="text" id="gameIdInput" class="input" placeholder="Введите ID игры (например: ABC123)" maxlength="6">
+            <button class="btn" onclick="joinGame()">Присоединиться</button>
+            <button class="btn btn-secondary" onclick="showMenu()">Назад</button>
+        </div>
+
+        <!-- Экран игры -->
+        <div class="game-screen" id="gameScreen">
+            <div class="game-info">
+                <div class="game-id" id="gameId">ABC123</div>
+                <div class="game-status" id="gameStatus">Ожидание игрока...</div>
+            </div>
+
+            <div class="players" id="players">
+                <div class="player">
+                    <div class="symbol">❌</div>
+                    <div class="name">Игрок 1</div>
+                </div>
+                <div class="player">
+                    <div class="symbol">⭕</div>
+                    <div class="name">Ожидание...</div>
+                </div>
+            </div>
+
+            <div class="board" id="board">
+                <div class="cell" onclick="makeMove(0)"></div>
+                <div class="cell" onclick="makeMove(1)"></div>
+                <div class="cell" onclick="makeMove(2)"></div>
+                <div class="cell" onclick="makeMove(3)"></div>
+                <div class="cell" onclick="makeMove(4)"></div>
+                <div class="cell" onclick="makeMove(5)"></div>
+                <div class="cell" onclick="makeMove(6)"></div>
+                <div class="cell" onclick="makeMove(7)"></div>
+                <div class="cell" onclick="makeMove(8)"></div>
+            </div>
+
+            <div id="winnerMessage"></div>
+
+            <button class="btn btn-secondary" onclick="showMenu()">🏠 Главное меню</button>
+            
+            <div class="share-link" id="shareLink" style="display: none;">
+                <div>Пошлите эту ссылку другу:</div>
+                <div id="shareLinkText"></div>
+                <button class="btn" onclick="shareGame()">📤 Поделиться</button>
+            </div>
+        </div>
+
+        <!-- Сообщения -->
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Настройки
+        const API_BASE = `http://${window.location.host}/api`;
+        const WS_URL = `ws://${window.location.host}/api/ws`;
+
+        // Глобальные переменные
+        let currentGame = null;
+        let playerId = null;
+        let playerName = null;
+        let websocket = null;
+
+        // Инициализация
+        function init() {
+            // Получаем данные пользователя из Telegram
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                playerId = tg.initDataUnsafe.user.id.toString();
+                playerName = tg.initDataUnsafe.user.first_name || 'Игрок';
+            } else {
+                // Для тестирования без Telegram
+                playerId = 'test_' + Math.random().toString(36).substr(2, 9);
+                playerName = 'Тестовый игрок';
+            }
+
+            // Проверяем параметры запуска (возможно, пользователь пришел по ссылке)
+            const urlParams = new URLSearchParams(window.location.search);
+            const gameId = urlParams.get('gameId');
+            if (gameId) {
+                document.getElementById('gameIdInput').value = gameId;
+                showJoinForm();
+            }
+        }
+
+        // WebSocket соединение
+        function connectWebSocket() {
+            if (websocket) {
+                websocket.close();
+            }
+
+            websocket = new WebSocket(WS_URL);
+            
+            websocket.onopen = function() {
+                console.log('WebSocket соединение установлено');
+                if (currentGame) {
+                    websocket.send(JSON.stringify({
+                        type: 'join',
+                        data: { gameId: currentGame.id, playerId: playerId }
+                    }));
+                }
+            };
+
+            websocket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleWebSocketMessage(message);
+            };
+
+            websocket.onerror = function(error) {
+                console.error('WebSocket ошибка:', error);
+                showMessage('Ошибка соединения', 'error');
+            };
+        }
+
+        // Обработка WebSocket сообщений
+        function handleWebSocketMessage(message) {
+            switch (message.type) {
+                case 'gameUpdate':
+                    currentGame = message.data;
+                    updateGameScreen();
+                    break;
+                case 'error':
+                    showMessage(message.data.message, 'error');
+                    break;
+            }
+        }
+
+        // Создание игры
+        async function createGame() {
+            try {
+                const response = await fetch(`${API_BASE}/games`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playerId: playerId,
+                        playerName: playerName
+                    })
+                });
+
+                if (response.ok) {
+                    currentGame = await response.json();
+                    connectWebSocket();
+                    showGameScreen();
+                    showShareLink();
+                    showMessage('Игра создана! Пошлите ссылку другу', 'success');
+                } else {
+                    showMessage('Ошибка создания игры', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showMessage('Ошибка соединения', 'error');
+            }
+        }
+
+        // Присоединение к игре
+        async function joinGame() {
+            const gameId = document.getElementById('gameIdInput').value.toUpperCase().trim();
+            
+            if (!gameId || gameId.length !== 6) {
+                showMessage('Введите корректный ID игры', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/games/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        gameId: gameId,
+                        playerId: playerId,
+                        playerName: playerName
+                    })
+                });
+
+                if (response.ok) {
+                    currentGame = await response.json();
+                    connectWebSocket();
+                    showGameScreen();
+                    showMessage('Присоединились к игре!', 'success');
+                } else {
+                    const error = await response.text();
+                    showMessage(error, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showMessage('Ошибка соединения', 'error');
+            }
+        }
+
+        // Сделать ход
+        function makeMove(position) {
+            if (!currentGame || currentGame.status !== 'playing') {
+                return;
+            }
+
+            if (currentGame.board[position] !== '') {
+                return;
+            }
+
+            const currentPlayer = currentGame.players[currentGame.turn];
+            if (currentPlayer.id !== playerId) {
+                showMessage('Сейчас не ваш ход!', 'error');
+                return;
+            }
+
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'move',
+                    data: {
+                        gameId: currentGame.id,
+                        position: position,
+                        playerId: playerId
+                    }
+                }));
+            }
+        }
+
+        // Обновление экрана игры
+        function updateGameScreen() {
+            if (!currentGame) return;
+
+            // ID игры
+            document.getElementById('gameId').textContent = currentGame.id;
+
+            // Статус игры
+            let statusText = '';
+            switch (currentGame.status) {
+                case 'waiting':
+                    statusText = 'Ожидание второго игрока...';
+                    break;
+                case 'playing':
+                    const currentPlayer = currentGame.players[currentGame.turn];
+                    if (currentPlayer.id === playerId) {
+                        statusText = 'Ваш ход!';
+                    } else {
+                        statusText = `Ход игрока ${currentPlayer.name}`;
+                    }
+                    break;
+                case 'finished':
+                    if (currentGame.winner === 'draw') {
+                        statusText = 'Ничья!';
+                    } else {
+                        const winner = currentGame.players.find(p => p.symbol === currentGame.winner);
+                        statusText = `Победил ${winner ? winner.name : currentGame.winner}!`;
+                    }
+                    break;
+            }
+            document.getElementById('gameStatus').textContent = statusText;
+
+            // Игроки
+            const playersDiv = document.getElementById('players');
+            playersDiv.innerHTML = '';
+            
+            currentGame.players.forEach((player, index) => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = `player ${currentGame.turn === index && currentGame.status === 'playing' ? 'active' : ''}`;
+                playerDiv.innerHTML = `
+                    <div class="symbol">${player.symbol === 'X' ? '❌' : '⭕'}</div>
+                    <div class="name">${player.name}</div>
+                `;
+                playersDiv.appendChild(playerDiv);
+            });
+
+            // Заполняем пустые места, если второй игрок не присоединился
+            while (playersDiv.children.length < 2) {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'player';
+                playerDiv.innerHTML = `
+                    <div class="symbol">⭕</div>
+                    <div class="name">Ожидание...</div>
+                `;
+                playersDiv.appendChild(playerDiv);
+            }
+
+            // Доска
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                const value = currentGame.board[index];
+                cell.textContent = value === 'X' ? '❌' : value === 'O' ? '⭕' : '';
+                cell.className = `cell ${value.toLowerCase()}`;
+                
+                // Предварительный просмотр хода
+                if (!value && currentGame.status === 'playing') {
+                    const currentPlayer = currentGame.players[currentGame.turn];
+                    if (currentPlayer.id === playerId) {
+                        cell.setAttribute('data-preview', currentPlayer.symbol === 'X' ? '❌' : '⭕');
+                    }
+                }
+            });
+
+            // Сообщение о победе
+            const winnerMessageDiv = document.getElementById('winnerMessage');
+            if (currentGame.status === 'finished') {
+                let messageClass = '';
+                let messageText = '';
+                
+                if (currentGame.winner === 'draw') {
+                    messageClass = 'draw';
+                    messageText = '🤝 Ничья!';
+                } else {
+                    const winner = currentGame.players.find(p => p.symbol === currentGame.winner);
+                    if (winner && winner.id === playerId) {
+                        messageClass = 'win';
+                        messageText = '🎉 Вы победили!';
+                    } else {
+                        messageClass = 'lose';
+                        messageText = '😢 Вы проиграли';
+                    }
+                }
+                
+                winnerMessageDiv.innerHTML = `<div class="winner-message ${messageClass}">${messageText}</div>`;
+            } else {
+                winnerMessageDiv.innerHTML = '';
+            }
+        }
+
+        // Показать ссылку для приглашения
+        function showShareLink() {
+            if (!currentGame) return;
+            
+            const shareLink = document.getElementById('shareLink');
+            const shareLinkText = document.getElementById('shareLinkText');
+            
+            const gameUrl = `${window.location.origin}${window.location.pathname}?gameId=${currentGame.id}`;
+            shareLinkText.textContent = gameUrl;
+            shareLink.style.display = 'block';
+        }
+
+        // Поделиться игрой
+        function shareGame() {
+            if (!currentGame) return;
+            
+            const gameUrl = `${window.location.origin}${window.location.pathname}?gameId=${currentGame.id}`;
+            const shareText = `🎮 Давай сыграем в крестики-нолики!\nИD игры: ${currentGame.id}\nСсылка: ${gameUrl}`;
+            
+            if (tg.shareToStory) {
+                tg.shareToStory(gameUrl, {
+                    text: shareText,
+                    widget_link: {
+                        url: gameUrl,
+                        name: 'Играть в крестики-нолики'
+                    }
+                });
+            } else if (navigator.share) {
+                navigator.share({
+                    title: 'Крестики-нолики',
+                    text: shareText,
+                    url: gameUrl
+                });
+            } else {
+                // Копируем в буфер обмена
+                navigator.clipboard.writeText(shareText).then(() => {
+                    showMessage('Ссылка скопирована!', 'success');
+                }).catch(() => {
+                    showMessage('Скопируйте ссылку вручную', 'info');
+                });
+            }
+        }
+
+        // Навигация между экранами
+        function showMenu() {
+            document.getElementById('menu').classList.remove('hidden');
+            document.getElementById('joinForm').classList.remove('active');
+            document.getElementById('gameScreen').classList.remove('active');
+            
+            // Закрываем WebSocket соединение
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+            
+            currentGame = null;
+            clearMessages();
+        }
+
+        function showJoinForm() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('joinForm').classList.add('active');
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('gameIdInput').focus();
+        }
+
+        function showGameScreen() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('joinForm').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            updateGameScreen();
+        }
+
+        // Система сообщений
+        function showMessage(text, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messagesDiv.appendChild(messageDiv);
+
+            // Автоматически убираем сообщение через 5 секунд
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        // Обработка кнопки "Назад" в Telegram
+        tg.BackButton.onClick(() => {
+            if (!document.getElementById('menu').classList.contains('hidden')) {
+                tg.close();
+            } else {
+                showMenu();
+            }
+        });
+
+        // Показываем кнопку "Назад" когда не в главном меню
+        function updateBackButton() {
+            if (document.getElementById('menu').classList.contains('hidden')) {
+                tg.BackButton.show();
+            } else {
+                tg.BackButton.hide();
+            }
+        }
+
+        // Следим за изменениями экранов для кнопки "Назад"
+        const observer = new MutationObserver(updateBackButton);
+        observer.observe(document.getElementById('menu'), { attributes: true, attributeFilter: ['class'] });
+
+        // Обработка Enter в поле ввода ID игры
+        document.getElementById('gameIdInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinGame();
+            }
+        });
+
+        // Автоформатирование ID игры
+        document.getElementById('gameIdInput').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+
+        // Запуск приложения
+        init();
+    </script>
+</body>
+</html>
