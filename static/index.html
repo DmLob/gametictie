@@ -323,8 +323,12 @@
         tg.expand();
 
         // Настройки
-        const API_BASE = `http://${window.location.host}/api`;
-        const WS_URL = `ws://${window.location.host}/api/ws`;
+        // const API_BASE = `http://${window.location.host}/api`;
+        // const WS_URL = `ws://${window.location.host}/api/ws`;\
+        const API_BASE = `${window.location.origin}/api`;
+        const WS_URL = window.location.protocol === 'https:' ? 
+              `wss://${window.location.host}/api/ws` : 
+              `ws://${window.location.host}/api/ws`;
 
         // Глобальные переменные
         let currentGame = null;

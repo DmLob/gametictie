@@ -56,17 +56,25 @@ var (
 	gameManager = &GameManager{
 		games: make(map[string]*Game),
 	}
+	// upgrader = websocket.Upgrader{
+	// 	CheckOrigin: func(r *http.Request) bool {
+	// 		// В продакшене проверяем только доверенные домены
+	// 		origin := r.Header.Get("Origin")
+	// 		return origin == "https://telegram.org" ||
+	// 			origin == "https://web.telegram.org" ||
+	// 			// Добавьте ваши домены
+	// 			origin == "https://yourusername.github.io" ||
+	// 			// Для разработки
+	// 			origin == "http://localhost:3000" ||
+	// 			origin == "http://localhost:8080"
+	// 	},
+	// }
+
 	upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			// В продакшене проверяем только доверенные домены
-			origin := r.Header.Get("Origin")
-			return origin == "https://telegram.org" ||
-				origin == "https://web.telegram.org" ||
-				// Добавьте ваши домены
-				origin == "https://yourusername.github.io" ||
-				// Для разработки
-				origin == "http://localhost:3000" ||
-				origin == "http://localhost:8080"
+			// Разрешаем все origins для разработки
+			// В продакшене лучше указать конкретные домены
+			return true
 		},
 	}
 )
@@ -361,6 +369,8 @@ func getGameHandler(w http.ResponseWriter, r *http.Request) {
 
 // websocketHandler обрабатывает WebSocket соединения
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("WebSocket запрос от: %s, Origin: %s", r.RemoteAddr, r.Header.Get("Origin"))
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("Ошибка WebSocket upgrade: %v", err)
@@ -431,30 +441,45 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // corsMiddleware добавляет CORS заголовки
+// func corsMiddleware(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		origin := r.Header.Get("Origin")
+
+// 		// Список разрешенных доменов
+// 		allowedOrigins := []string{
+// 			"https://telegram.org",
+// 			"https://web.telegram.org",
+// 			"https://gametictie.onrender.com/", // Замените на ваш GitHub Pages URL
+// 			"http://localhost:3000",
+// 			"http://localhost:8080",
+// 		}
+
+// 		// Проверяем origin
+// 		for _, allowed := range allowedOrigins {
+// 			if origin == allowed {
+// 				w.Header().Set("Access-Control-Allow-Origin", origin)
+// 				break
+// 			}
+// 		}
+
+// 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+// 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+// 		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+// 		if r.Method == "OPTIONS" {
+// 			w.WriteHeader(http.StatusOK)
+// 			return
+// 		}
+
+// 		next.ServeHTTP(w, r)
+// 	})
+// }
+
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-
-		// Список разрешенных доменов
-		allowedOrigins := []string{
-			"https://telegram.org",
-			"https://web.telegram.org",
-			"https://DmLob.github.io", // Замените на ваш GitHub Pages URL
-			"http://localhost:3000",
-			"http://localhost:8080",
-		}
-
-		// Проверяем origin
-		for _, allowed := range allowedOrigins {
-			if origin == allowed {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				break
-			}
-		}
-
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
